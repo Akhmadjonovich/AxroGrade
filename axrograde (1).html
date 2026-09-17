@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AxroGrade — Javoblar varag'ini avtomatik baholovchi</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>">
+<style>
+  :root{
+    --bg:#f2f4fb; --card:#ffffff; --ink:#171b2e; --muted:#6b7280;
+    --accent:#4c5bf0; --accent2:#7c6bff; --accent-dark:#3944c9;
+    --ok:#17a862; --ok-bg:#e6f8ee; --bad:#e5433d; --bad-bg:#fdeaea; --warn:#d99000; --warn-bg:#fff3dc;
+    --border:#e6e8f0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); padding-bottom:60px;
+  }
+  header.hero{
+    background:linear-gradient(120deg,var(--accent),var(--accent2));
+    color:#fff; padding:28px 18px 60px; position:relative; overflow:hidden;
+  }
+  header.hero::after{
+    content:""; position:absolute; right:-40px; top:-60px; width:220px; height:220px;
+    background:rgba(255,255,255,.12); border-radius:50%;
+  }
+  header.hero::before{
+    content:""; position:absolute; left:-60px; bottom:-80px; width:180px; height:180px;
+    background:rgba(255,255,255,.10); border-radius:50%;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-size:24px; font-weight:800; position:relative; z-index:1;}
+  .brand .logo{
+    width:38px; height:38px; background:rgba(255,255,255,.22); border-radius:11px;
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+  }
+  header.hero .tag{margin-top:6px; font-size:14px; opacity:.92; max-width:560px; line-height:1.5; position:relative; z-index:1;}
+
+  .wrap{max-width:960px; margin:-40px auto 0; padding:0 14px; position:relative; z-index:2;}
+  .tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; background:#fff; padding:6px; border-radius:14px; box-shadow:0 10px 28px -14px rgba(30,40,90,.25);}
+  .tab-btn{
+    flex:1; min-width:120px; padding:11px 10px; border-radius:10px; border:none; background:transparent;
+    cursor:pointer; font-size:13.5px; font-weight:700; color:var(--muted);
+  }
+  .tab-btn.active{background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 6px 16px -6px rgba(76,91,240,.6);}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;
+    margin-bottom:16px; box-shadow:0 6px 20px -16px rgba(20,25,60,.18);}
+  .card h2{font-size:16px; margin:0 0 4px; display:flex; align-items:center; gap:8px;}
+  .card .desc{color:var(--muted); font-size:13px; margin:0 0 14px;}
+
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  label{font-size:13px; color:var(--muted); font-weight:700;}
+  input[type=number], input[type=text]{
+    padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:15px; width:110px;
+    background:#fafbff;
+  }
+  input[type=text]{width:230px;}
+  input:focus{outline:none; border-color:var(--accent);}
+
+  button{
+    padding:11px 18px; border-radius:11px; border:none; background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff;
+    font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 6px 14px -8px rgba(76,91,240,.7);
+  }
+  button.secondary{background:#eef0fb; color:var(--accent-dark); box-shadow:none;}
+  button.danger{background:linear-gradient(120deg,#f0575a,#e5433d); box-shadow:0 6px 14px -8px rgba(229,67,61,.6);}
+  button:disabled{opacity:.4; cursor:not-allowed; box-shadow:none;}
+  button:active{transform:scale(.97);}
+
+  /* ---- KEY GRID (mobil-friendly) ---- */
+  .key-grid{display:grid; grid-template-columns:1fr; gap:8px; margin-top:16px;}
+  @media(min-width:560px){ .key-grid{grid-template-columns:1fr 1fr;} }
+  @media(min-width:860px){ .key-grid{grid-template-columns:1fr 1fr 1fr;} }
+  .key-item{
+    display:grid; grid-template-columns:30px repeat(4,1fr); gap:6px; align-items:center;
+    background:#fafbff; border:1.5px solid var(--border); border-radius:12px; padding:6px;
+  }
+  .key-item span.qn{font-size:13px; font-weight:800; color:var(--muted); text-align:center;}
+  .opt-btn{
+    width:100%; height:40px; border-radius:9px; border:1.5px solid var(--border); background:#fff;
+    font-size:14px; font-weight:800; cursor:pointer; color:var(--ink); padding:0;
+    box-shadow:none; touch-action:manipulation;
+  }
+  .opt-btn.sel{background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent;}
+
+  .hint{font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.6; background:#f6f7fd; border-radius:10px; padding:10px 12px;}
+
+  .canvas-wrap{position:relative; display:block; max-width:100%; text-align:center;}
+  canvas{max-width:100%; border-radius:12px; border:1.5px solid var(--border); touch-action:none; cursor:crosshair; background:#fafbff;}
+
+  .steps{font-size:13.5px; color:var(--ink); background:#eef1ff; border:1px solid #d9deff; border-radius:12px; padding:12px 14px; margin-bottom:14px; line-height:1.7;}
+  .steps b{color:var(--accent-dark);}
+
+  .summary{display:flex; gap:12px; flex-wrap:wrap; margin:14px 0;}
+  .stat{flex:1; min-width:100px; background:#fafbff; border:1.5px solid var(--border); border-radius:14px; padding:14px 10px; text-align:center;}
+  .stat .num{font-size:26px; font-weight:800;}
+  .stat.ok{background:var(--ok-bg); border-color:transparent;} .stat.ok .num{color:var(--ok);}
+  .stat.bad{background:var(--bad-bg); border-color:transparent;} .stat.bad .num{color:var(--bad);}
+  .stat.warn{background:var(--warn-bg); border-color:transparent;} .stat.warn .num{color:var(--warn);}
+  .stat .lbl{font-size:12px; color:var(--muted); margin-top:2px; font-weight:600;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px; margin-top:10px;}
+  th,td{padding:9px 8px; border-bottom:1px solid var(--border); text-align:center;}
+  th{color:var(--muted); font-weight:800; background:#fafbff; position:sticky; top:0;}
+  tr.bad-row{background:var(--bad-bg);}
+  tr.warn-row{background:var(--warn-bg);}
+  select.ans-select{border:1.5px solid var(--border); border-radius:8px; padding:6px 4px; font-size:13px; font-weight:800; background:#fff;}
+  .pill{display:inline-block; padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:800;}
+  .pill.ok{background:var(--ok-bg); color:var(--ok);}
+  .pill.bad{background:var(--bad-bg); color:var(--bad);}
+  .pill.warn{background:var(--warn-bg); color:var(--warn);}
+  .small{font-size:12.5px; color:var(--muted);}
+  #studentsTable td, #studentsTable th{font-size:12.5px;}
+  .flex-between{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap" style="margin:0; padding:0;">
+    <div class="brand"><span class="logo">✅</span> AxroGrade</div>
+    <div class="tag">Javoblar varag'ini (OMR) telefon kamerasi orqali avtomatik baholovchi. Kalitni kiriting — o'quvchi varag'ini skanerlang — natijani soniyada oling.</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="key">1️⃣ Kalit</button>
+    <button class="tab-btn" data-tab="scan">2️⃣ Skanerlash</button>
+    <button class="tab-btn" data-tab="students">3️⃣ Natijalar</button>
+  </div>
+
+  <!-- TAB: KEY -->
+  <div class="tab-pane" id="tab-key">
+    <div class="card">
+      <h2>⚙️ Sozlamalar</h2>
+      <div class="row">
+        <label>Savollar soni:</label>
+        <input type="number" id="qCount" value="90" min="1" max="90">
+        <button id="applyCount" class="secondary">Yangilash</button>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <label>Tez kiritish:</label>
+        <input type="text" id="bulkInput" placeholder="ABCDAABCD...">
+        <button id="bulkApply" class="secondary">Qo'llash</button>
+        <button id="clearKey" class="danger">Tozalash</button>
+      </div>
+      <div class="hint">💡 Har bir savol qatorida <b>A / B / C / D</b> tugmalaridan birini bosib to'g'ri javobni belgilang. Yoki yuqoridagi maydonga ketma-ket harflar yozib ("Qo'llash" tugmasi bilan) bir zumda to'ldiring. Kalit shu qurilmada avtomatik saqlanadi.</div>
+    </div>
+    <div class="card">
+      <h2>🔑 Javoblar kaliti</h2>
+      <div class="key-grid" id="keyGrid"></div>
+    </div>
+  </div>
+
+  <!-- TAB: SCAN -->
+  <div class="tab-pane" id="tab-scan" style="display:none;">
+    <div class="card">
+      <h2>📷 O'quvchi varag'ini yuklash</h2>
+      <div class="row">
+        <input type="text" id="studentName" placeholder="O'quvchi F.I.Sh">
+        <input type="file" id="fileInput" accept="image/*" capture="environment">
+      </div>
+      <div class="steps" id="stepsBox">
+        <b>1-qadam:</b> Yuqoridagi maydonni bosing — telefon kamerasi ochiladi, varaqni suratga oling (yoki galereyadan rasm tanlang).<br>
+        <b>2-qadam:</b> Dastur 4 ta qora burchak-belgini <b>avtomatik topishga harakat qiladi</b> (yashil nuqtalar). Agar biror nuqta noto'g'ri yoki topilmagan bo'lsa — uni barmoq bilan bosib joyidan siljiting yoki bo'sh joyga bosib qo'lda belgilang.<br>
+        <b>3-qadam:</b> 4 ta nuqta joyida bo'lsa, "Tahlil qilish" tugmasini bosing.
+      </div>
+      <div class="small" id="autoStatus" style="margin-bottom:10px;"></div>
+      <div class="canvas-wrap">
+        <canvas id="mainCanvas"></canvas>
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button id="resetPoints" class="secondary">↺ Nuqtalarni qayta belgilash</button>
+        <button id="analyzeBtn" disabled>🔍 Tahlil qilish</button>
+        <span class="small" id="pointStatus">0/4 nuqta belgilandi</span>
+      </div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h2>📊 Natija</h2>
+      <div class="summary">
+        <div class="stat ok"><div class="num" id="rCorrect">-</div><div class="lbl">To'g'ri</div></div>
+        <div class="stat bad"><div class="num" id="rWrong">-</div><div class="lbl">Xato</div></div>
+        <div class="stat warn"><div class="num" id="rBlank">-</div><div class="lbl">Bo'sh/noaniq</div></div>
+        <div class="stat"><div class="num" id="rPercent">-</div><div class="lbl">Foiz</div></div>
+      </div>
+      <div class="flex-between">
+        <div class="small">Noto'g'ri o'qilgan savolni jadvaldan qo'lda tuzating — natija shu zahoti qayta hisoblanadi.</div>
+        <button id="saveStudentBtn" class="secondary">💾 Natijani saqlash</button>
+      </div>
+      <div class="table-scroll">
+      <table id="resultTable">
+        <thead><tr><th>Savol</th><th>To'g'ri</th><th>O'quvchi</th><th>Holat</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: STUDENTS -->
+  <div class="tab-pane" id="tab-students" style="display:none;">
+    <div class="card">
+      <div class="flex-between">
+        <h2>📋 Saqlangan natijalar</h2>
+        <div class="row">
+          <button id="exportCsv" class="secondary">⬇️ CSV</button>
+          <button id="clearStudents" class="danger">O'chirish</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+      <table id="studentsTable">
+        <thead><tr><th>#</th><th>Ism</th><th>To'g'ri</th><th>Xato</th><th>Bo'sh</th><th>Foiz</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('error', function(ev){
+  try{
+    let bar = document.getElementById('errBar');
+    if(!bar){
+      bar = document.createElement('div');
+      bar.id='errBar';
+      bar.style.cssText='position:fixed;left:0;right:0;bottom:0;background:#e5433d;color:#fff;padding:10px 14px;font-size:12px;z-index:9999;';
+      document.body.appendChild(bar);
+    }
+    bar.textContent = '⚠️ Xatolik: '+ev.message;
+  }catch(e){}
+});
+
+/* ---------------- TABS ---------------- */
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
+    document.getElementById('tab-'+b.dataset.tab).style.display='block';
+    if(b.dataset.tab==='students') renderStudents();
+  };
+});
+
+/* ---------------- TEMPLATE GEOMETRY (reference photo pixel space) ---------------- */
+const REF_CORNERS = [[228,619],[1212,610],[272,1920],[1209,1925]]; // TL, TR, BL, BR
+
+const GROUP_X = [
+  [344.5,380.5,416.5,452.5],
+  [565.5,600.5,635.5,670.5],
+  [713.5,749.5,785.5,819.5],
+  [897.5,933.5,965.5,1003.5]
+];
+function rowY(r){
+  if(r<=12) return 726.6 + (r-1)*46.127;
+  return 1329.9 + (r-13)*44.911;
+}
+function bubbleRef(q){
+  const group = Math.floor((q-1)/25);
+  const row = ((q-1)%25)+1;
+  const y = rowY(row);
+  const xs = GROUP_X[group];
+  return xs.map(x=>[x,y]);
+}
+
+/* ---------------- SAFE STORAGE (ba'zi telefon brauzerlarida file:// ochilganda
+   localStorage butunlay bloklanadi va xato tashlaydi — shu sabab avval butun skript
+   to'xtab, hech qanday tugma ishlamay qolgan. Endi bunday holatda xotiraga (RAM)
+   saqlab, dastur baribir ishlashda davom etadi. ---------------- */
+const _mem = {};
+function sGet(key, fallback){
+  try{ const v = localStorage.getItem(key); return v==null?fallback:v; }
+  catch(e){ return (key in _mem)?_mem[key]:fallback; }
+}
+function sSet(key, value){
+  try{ localStorage.setItem(key, value); }
+  catch(e){ _mem[key]=value; }
+}
+
+/* ---------------- KEY STORAGE ---------------- */
+let KEY = JSON.parse(sGet('axrograde_key','{}'));
+let qCount = parseInt(sGet('axrograde_qcount','90'));
+document.getElementById('qCount').value = qCount;
+
+function saveKey(){ sSet('axrograde_key', JSON.stringify(KEY)); sSet('axrograde_qcount', qCount); }
+
+function buildKeyGrid(){
+  const grid = document.getElementById('keyGrid');
+  grid.innerHTML='';
+  const frag = document.createDocumentFragment();
+  for(let q=1;q<=qCount;q++){
+    const item = document.createElement('div');
+    item.className='key-item';
+    const qn = document.createElement('span'); qn.className='qn'; qn.textContent=q;
+    item.appendChild(qn);
+    ['A','B','C','D'].forEach(letter=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className='opt-btn'+(KEY[q]===letter?' sel':'');
+      btn.textContent=letter;
+      const select = ()=>{
+        KEY[q]=letter; saveKey();
+        item.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('sel'));
+        btn.classList.add('sel');
+      };
+      btn.addEventListener('click', select);
+      item.appendChild(btn);
+    });
+    frag.appendChild(item);
+  }
+  grid.appendChild(frag);
+}
+buildKeyGrid();
+
+document.getElementById('applyCount').onclick=()=>{
+  qCount = Math.max(1, Math.min(90, parseInt(document.getElementById('qCount').value||'90')));
+  saveKey(); buildKeyGrid();
+};
+document.getElementById('clearKey').onclick=()=>{
+  if(confirm('Kalitni butunlay tozalashni xohlaysizmi?')){ KEY={}; saveKey(); buildKeyGrid(); }
+};
+document.getElementById('bulkApply').onclick=()=>{
+  const raw = document.getElementById('bulkInput').value.toUpperCase().replace(/[^ABCD]/g,'');
+  for(let i=0;i<raw.length && i<qCount;i++){ KEY[i+1]=raw[i]; }
+  saveKey(); buildKeyGrid();
+};
+
+/* ---------------- HOMOGRAPHY (4-point perspective transform) ---------------- */
+function solve8(A,B){
+  const n=8;
+  for(let i=0;i<n;i++) A[i].push(B[i]);
+  for(let col=0; col<n; col++){
+    let piv=col;
+    for(let r=col+1;r<n;r++) if(Math.abs(A[r][col])>Math.abs(A[piv][col])) piv=r;
+    [A[col],A[piv]]=[A[piv],A[col]];
+    const pv = A[col][col];
+    if(Math.abs(pv)<1e-12) continue;
+    for(let c=col;c<=n;c++) A[col][c]/=pv;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const f=A[r][col];
+      for(let c=col;c<=n;c++) A[r][c]-=f*A[col][c];
+    }
+  }
+  return A.map(r=>r[n]);
+}
+function getPerspectiveTransform(src,dst){
+  const A=[],B=[];
+  for(let i=0;i<4;i++){
+    const [x,y]=src[i], [u,v]=dst[i];
+    A.push([x,y,1,0,0,0,-u*x,-u*y]); B.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]); B.push(v);
+  }
+  const h = solve8(A,B);
+  return [h[0],h[1],h[2],h[3],h[4],h[5],h[6],h[7],1];
+}
+function applyH(H,pt){
+  const [x,y]=pt;
+  const w = H[6]*x+H[7]*y+1;
+  return [(H[0]*x+H[1]*y+H[2])/w, (H[3]*x+H[4]*y+H[5])/w];
+}
+
+/* ---------------- SCAN LOGIC ---------------- */
+const fileInput = document.getElementById('fileInput');
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let img = new Image();
+let fullCanvas = document.createElement('canvas');
+let fullCtx = fullCanvas.getContext('2d', {willReadFrequently:true});
+let dispScale = 1;
+let clickPointsFull = [];
+let analyzedResults = null;
+
+fileInput.onchange = (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    img = new Image();
+    img.onload = ()=>{
+      fullCanvas.width = img.naturalWidth;
+      fullCanvas.height = img.naturalHeight;
+      fullCtx.drawImage(img,0,0);
+
+      const maxW = 800;
+      const scale = Math.min(1, maxW/img.naturalWidth);
+      canvas.width = img.naturalWidth*scale;
+      canvas.height = img.naturalHeight*scale;
+      dispScale = img.naturalWidth/canvas.width;
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+      document.getElementById('analyzeBtn').disabled = true;
+      document.getElementById('resultCard').style.display='none';
+
+      document.getElementById('autoStatus').textContent = '🔎 Burchaklar avtomatik izlanmoqda...';
+      setTimeout(()=>{
+        clickPointsFull = autoDetectCorners();
+        redrawPoints();
+        updatePointStatus();
+      }, 30);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+/* ---- AVTOMATIK BURCHAK ANIQLASH ----
+   Har bir burchak uchun taxminiy hudud ichida qorayib turgan, deyarli kvadrat
+   shaklidagi eng zich dog'ni (fidusial belgi) qidiradi. */
+const EXPECTED_CORNERS = [
+  {fx:0.158, fy:0.242}, // chap-yuqori
+  {fx:0.842, fy:0.238}, // o'ng-yuqori
+  {fx:0.189, fy:0.750}, // chap-past
+  {fx:0.839, fy:0.752}  // o'ng-past
+];
+function detectSquareInWindow(x0,y0,w,h){
+  x0=Math.round(x0); y0=Math.round(y0); w=Math.round(w); h=Math.round(h);
+  if(w<10||h<10) return null;
+  const step = Math.max(1, Math.round(Math.max(w,h)/140));
+  const gw = Math.floor(w/step), gh = Math.floor(h/step);
+  if(gw<5||gh<5) return null;
+  let data;
+  try{ data = fullCtx.getImageData(x0,y0,w,h).data; } catch(e){ return null; }
+  const gray = new Float32Array(gw*gh);
+  for(let gy=0; gy<gh; gy++){
+    for(let gx=0; gx<gw; gx++){
+      const px = Math.min(w-1, gx*step), py = Math.min(h-1, gy*step);
+      const idx = (py*w+px)*4;
+      gray[gy*gw+gx] = 0.299*data[idx]+0.587*data[idx+1]+0.114*data[idx+2];
+    }
+  }
+  let sum=0; for(let i=0;i<gray.length;i++) sum+=gray[i];
+  const mean = sum/gray.length;
+  const thresh = Math.min(130, mean-30);
+  const bin = new Uint8Array(gw*gh);
+  for(let i=0;i<gray.length;i++) bin[i] = gray[i]<thresh ? 1:0;
+  const visited = new Uint8Array(gw*gh);
+  let best=null;
+  for(let gy=0; gy<gh; gy++){
+    for(let gx=0; gx<gw; gx++){
+      const idx=gy*gw+gx;
+      if(bin[idx] && !visited[idx]){
+        let minx=gx,maxx=gx,miny=gy,maxy=gy,count=0;
+        const stack=[idx]; visited[idx]=1;
+        while(stack.length){
+          const cidx=stack.pop(); count++;
+          const cx=cidx%gw, cy=(cidx/gw)|0;
+          if(cx<minx)minx=cx; if(cx>maxx)maxx=cx; if(cy<miny)miny=cy; if(cy>maxy)maxy=cy;
+          const nb=[[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
+          for(let k=0;k<4;k++){
+            const nx=nb[k][0], ny=nb[k][1];
+            if(nx>=0&&nx<gw&&ny>=0&&ny<gh){
+              const nidx=ny*gw+nx;
+              if(bin[nidx]&&!visited[nidx]){ visited[nidx]=1; stack.push(nidx); }
+            }
+          }
+        }
+        const bw=maxx-minx+1, bh=maxy-miny+1;
+        const boxArea=bw*bh, fill=count/boxArea, aspect=bw/bh;
+        if(fill>0.55 && aspect>0.5 && aspect<2.0 && bw>=3 && bh>=3 &&
+           boxArea < (gw*gh*0.35) && boxArea > (gw*gh*0.0006)){
+          const score = fill*Math.min(count,400);
+          if(!best || score>best.score) best={score, cx:(minx+maxx)/2, cy:(miny+maxy)/2};
+        }
+      }
+    }
+  }
+  if(!best) return null;
+  return [x0 + best.cx*step, y0 + best.cy*step];
+}
+function autoDetectCorners(){
+  const iw = fullCanvas.width, ih = fullCanvas.height;
+  const pts = EXPECTED_CORNERS.map(e=>{
+    const cx = e.fx*iw, cy = e.fy*ih;
+    const winW = iw*0.34, winH = ih*0.24;
+    const x0 = Math.max(0, cx-winW/2), y0 = Math.max(0, cy-winH/2);
+    const w = Math.min(winW, iw-x0), h = Math.min(winH, ih-y0);
+    const found = detectSquareInWindow(x0,y0,w,h);
+    return found ? found : null;
+  });
+  const foundCount = pts.filter(p=>p).length;
+  document.getElementById('autoStatus').textContent =
+    foundCount===4 ? '✅ 4 ta burchak avtomatik topildi. Kerak bo\'lsa siljitib tuzating.'
+    : `⚠️ ${foundCount}/4 burchak avtomatik topildi. Qolganini bo'sh joyga bosib belgilang.`;
+  return pts; // array of 4 items: [x,y] yoki null
+}
+
+/* ---- NUQTALARNI BOSISH / SILJITISH (drag) ---- */
+let dragIndex = -1;
+function toDisplay(p){ return [p[0]/dispScale, p[1]/dispScale]; }
+function toFull(dx,dy){ return [dx*dispScale, dy*dispScale]; }
+function nearestPointIndex(dx,dy){
+  let bestI=-1, bestD=22; // 22px bosish radiusi (displey koordinatasida)
+  clickPointsFull.forEach((p,i)=>{
+    if(!p) return;
+    const [px,py] = toDisplay(p);
+    const d = Math.hypot(px-dx, py-dy);
+    if(d<bestD){ bestD=d; bestI=i; }
+  });
+  return bestI;
+}
+function canvasXY(clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  return [(clientX-rect.left)*(canvas.width/rect.width), (clientY-rect.top)*(canvas.height/rect.height)];
+}
+function pointerDown(clientX, clientY){
+  const [dx,dy] = canvasXY(clientX, clientY);
+  const idx = nearestPointIndex(dx,dy);
+  if(idx>=0){ dragIndex = idx; return; }
+  const emptyIdx = clickPointsFull.findIndex(p=>!p);
+  if(emptyIdx>=0){
+    clickPointsFull[emptyIdx] = toFull(dx,dy);
+    redrawPoints(); updatePointStatus();
+  }
+}
+function pointerMove(clientX, clientY){
+  if(dragIndex<0) return;
+  const [dx,dy] = canvasXY(clientX, clientY);
+  clickPointsFull[dragIndex] = toFull(dx,dy);
+  redrawPoints();
+}
+function pointerUp(){ dragIndex=-1; updatePointStatus(); }
+
+canvas.addEventListener('mousedown', e=> pointerDown(e.clientX,e.clientY));
+canvas.addEventListener('mousemove', e=> pointerMove(e.clientX,e.clientY));
+window.addEventListener('mouseup', pointerUp);
+canvas.addEventListener('touchstart', e=>{
+  if(e.touches[0]){ e.preventDefault(); pointerDown(e.touches[0].clientX, e.touches[0].clientY); }
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  if(e.touches[0]){ e.preventDefault(); pointerMove(e.touches[0].clientX, e.touches[0].clientY); }
+}, {passive:false});
+canvas.addEventListener('touchend', pointerUp);
+
+function redrawPoints(){
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  const labels=['①','②','③','④'];
+  clickPointsFull.forEach((p,i)=>{
+    if(!p) return;
+    const [dx,dy] = toDisplay(p);
+    ctx.beginPath();
+    ctx.arc(dx,dy,9,0,2*Math.PI);
+    ctx.fillStyle='rgba(23,168,98,0.92)';
+    ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(labels[i], dx, dy+4);
+  });
+}
+function updatePointStatus(){
+  const n = clickPointsFull.filter(p=>p).length;
+  document.getElementById('pointStatus').textContent = n+'/4 nuqta belgilandi';
+  document.getElementById('analyzeBtn').disabled = n<4;
+}
+document.getElementById('resetPoints').onclick=()=>{
+  clickPointsFull=[null,null,null,null]; updatePointStatus();
+  document.getElementById('analyzeBtn').disabled=true;
+  document.getElementById('autoStatus').textContent='';
+  if(img.src) redrawPoints();
+};
+
+function brightnessAt(px,py,radius){
+  const x0 = Math.max(0, Math.round(px-radius));
+  const y0 = Math.max(0, Math.round(py-radius));
+  const w = Math.min(fullCanvas.width-x0, radius*2);
+  const h = Math.min(fullCanvas.height-y0, radius*2);
+  if(w<=0||h<=0) return 255;
+  const data = fullCtx.getImageData(x0,y0,w,h).data;
+  let sum=0, n=0;
+  for(let i=0;i<data.length;i+=4){
+    sum += 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+    n++;
+  }
+  return sum/n;
+}
+
+document.getElementById('analyzeBtn').onclick = ()=>{
+  const H = getPerspectiveTransform(REF_CORNERS, clickPointsFull);
+  const d0 = Math.hypot(REF_CORNERS[1][0]-REF_CORNERS[0][0], REF_CORNERS[1][1]-REF_CORNERS[0][1]);
+  const d1 = Math.hypot(clickPointsFull[1][0]-clickPointsFull[0][0], clickPointsFull[1][1]-clickPointsFull[0][1]);
+  const scaleFactor = d1/d0;
+  const radius = Math.max(6, 11*scaleFactor);
+
+  const results = [];
+  for(let q=1;q<=qCount;q++){
+    const refPts = bubbleRef(q);
+    const bright = refPts.map(rp=>{
+      const [px,py] = applyH(H, rp);
+      return {pt:[px,py], val:brightnessAt(px,py,radius)};
+    });
+    const vals = bright.map(b=>b.val);
+    const sortedIdx = [0,1,2,3].sort((a,b)=>vals[a]-vals[b]);
+    const darkest = sortedIdx[0], second = sortedIdx[1];
+    let detected = null;
+    const LETTERS=['A','B','C','D'];
+    if(vals[darkest] < 175 && (vals[second]-vals[darkest]) > 18){
+      detected = LETTERS[darkest];
+    } else if(vals[darkest] < 175 && (vals[second]-vals[darkest]) <= 18){
+      detected = '?';
+    } else {
+      detected = null;
+    }
+    results.push({q, bright, detected});
+  }
+  analyzedResults = results;
+  redrawPoints();
+  drawOverlay(results);
+  renderResultTable();
+};
+
+function drawOverlay(results){
+  results.forEach(r=>{
+    r.bright.forEach((b,i)=>{
+      const dx=b.pt[0]/dispScale, dy=b.pt[1]/dispScale;
+      const letter = ['A','B','C','D'][i];
+      const isSel = r.detected===letter;
+      ctx.beginPath();
+      ctx.arc(dx,dy,5,0,2*Math.PI);
+      const correct = KEY[r.q];
+      let color = 'rgba(150,150,150,0.5)';
+      if(isSel){
+        if(r.detected==='?') color = '#d99000';
+        else color = (letter===correct) ? '#17a862' : '#e5433d';
+      }
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  });
+}
+
+function renderResultTable(){
+  document.getElementById('resultCard').style.display='block';
+  const tbody = document.querySelector('#resultTable tbody');
+  tbody.innerHTML='';
+  let correct=0, wrong=0, blank=0;
+  analyzedResults.forEach(r=>{
+    const tr = document.createElement('tr');
+    const correctAns = KEY[r.q] || '-';
+    const tdQ = document.createElement('td'); tdQ.textContent = r.q;
+    const tdC = document.createElement('td'); tdC.textContent = correctAns;
+    const tdS = document.createElement('td');
+    const sel = document.createElement('select'); sel.className='ans-select';
+    ['-','A','B','C','D'].forEach(op=>{
+      const o=document.createElement('option'); o.value=op; o.textContent=op;
+      if((r.detected==null && op==='-') || r.detected===op) o.selected=true;
+      sel.appendChild(o);
+    });
+    sel.onchange = ()=>{
+      r.detected = sel.value==='-' ? null : sel.value;
+      renderResultTable();
+    };
+    tdS.appendChild(sel);
+    const tdSt = document.createElement('td');
+
+    let statusHtml='', rowClass='';
+    if(r.detected==null){ statusHtml='<span class="pill warn">Bo\'sh</span>'; blank++; rowClass='warn-row'; }
+    else if(r.detected==='?'){ statusHtml='<span class="pill warn">Noaniq</span>'; blank++; rowClass='warn-row'; }
+    else if(r.detected===correctAns){ statusHtml='<span class="pill ok">To\'g\'ri</span>'; correct++; }
+    else { statusHtml='<span class="pill bad">Xato</span>'; wrong++; rowClass='bad-row'; }
+    tdSt.innerHTML = statusHtml;
+    if(rowClass) tr.className=rowClass;
+
+    tr.appendChild(tdQ); tr.appendChild(tdC); tr.appendChild(tdS); tr.appendChild(tdSt);
+    tbody.appendChild(tr);
+  });
+  document.getElementById('rCorrect').textContent=correct;
+  document.getElementById('rWrong').textContent=wrong;
+  document.getElementById('rBlank').textContent=blank;
+  document.getElementById('rPercent').textContent = qCount? Math.round(correct/qCount*100)+'%' : '-';
+}
+
+/* ---------------- STUDENTS STORAGE ---------------- */
+function getStudents(){ return JSON.parse(sGet('axrograde_students','[]')); }
+function setStudents(arr){ sSet('axrograde_students', JSON.stringify(arr)); }
+
+document.getElementById('saveStudentBtn').onclick=()=>{
+  if(!analyzedResults) return;
+  const name = document.getElementById('studentName').value.trim() || 'Ismsiz o\'quvchi';
+  let correct=0, wrong=0, blank=0;
+  const detail = analyzedResults.map(r=>{
+    const correctAns = KEY[r.q]||'-';
+    let status='blank';
+    if(r.detected==null || r.detected==='?'){ blank++; status = r.detected==='?' ? 'ambiguous':'blank'; }
+    else if(r.detected===correctAns){ correct++; status='correct'; }
+    else { wrong++; status='wrong'; }
+    return {q:r.q, correct:correctAns, student:r.detected||'-', status};
+  });
+  const students = getStudents();
+  students.push({name, date:new Date().toLocaleString('uz-UZ'), correct, wrong, blank, total:qCount, detail});
+  setStudents(students);
+  alert('Saqlandi: '+name+' — To\'g\'ri: '+correct+'/'+qCount);
+};
+
+function renderStudents(){
+  const students = getStudents();
+  const tbody = document.querySelector('#studentsTable tbody');
+  tbody.innerHTML='';
+  students.forEach((s,i)=>{
+    const tr = document.createElement('tr');
+    const pct = Math.round(s.correct/s.total*100)+'%';
+    tr.innerHTML = `<td>${i+1}</td><td>${s.name}</td><td>${s.correct}</td><td>${s.wrong}</td><td>${s.blank}</td><td>${pct}</td>
+      <td><button class="secondary" onclick="deleteStudent(${i})">O'chirish</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function deleteStudent(i){
+  const students = getStudents();
+  students.splice(i,1);
+  setStudents(students);
+  renderStudents();
+}
+document.getElementById('clearStudents').onclick=()=>{
+  if(confirm('Barcha saqlangan natijalarni o\'chirishni xohlaysizmi?')){ setStudents([]); renderStudents(); }
+};
+document.getElementById('exportCsv').onclick=()=>{
+  const students = getStudents();
+  let csv = 'Ism,Sana,Togri,Xato,Bosh,Jami,Foiz\n';
+  students.forEach(s=>{
+    const pct = Math.round(s.correct/s.total*100);
+    csv += `"${s.name}","${s.date}",${s.correct},${s.wrong},${s.blank},${s.total},${pct}%\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='axrograde_natijalar.csv'; a.click();
+};
+</script>
+</body>
+</html>
